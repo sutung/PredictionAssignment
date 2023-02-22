@@ -3,6 +3,8 @@ knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 ```
 
 # Practical Machine Learning - Prediction Assignment
+Author: Tan Su Tung
+Date: 22 Feb 2022
 
 ## Overview
 
@@ -76,7 +78,7 @@ dim(df_test)
 
     ## [1]  20 160
 
-Remove the first five variables with identifications from all dataset
+Remove the first five variables with identifications data from all dataset
 include train set, validation set and test data.
 
 ``` r
