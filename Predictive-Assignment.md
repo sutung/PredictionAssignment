@@ -1,6 +1,8 @@
 ``` r
 knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 ```
+Author: Tan Su Tung
+Date: 22 Feb 2023
 
 # Practical Machine Learning - Prediction Assignment
 
