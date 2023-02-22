@@ -1,0 +1,183 @@
+---
+title: "PredictionAssignment"
+author: "TanST"
+date: "2023-02-21"
+output:
+  html_document: default
+  pdf_document: default
+  md_document:
+    variant: markdown_github
+  word_document: default
+---
+
+```{r setup, include=TRUE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
+
+# Practical Machine Learning - Prediction Assignment
+
+## Overview
+This is the report of Peer Assessment project from Coursera’s course Practical Machine Learning. This markdown document was built in RStudio, using its knitr functions and published in md (markdown) format. 
+
+## Background
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways.
+
+The training data for this project are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+The test data are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+## Data Loading and Cleaning
+
+Load the neccessary library
+
+```{r}
+library(caret)
+library(corrplot)
+```
+
+
+We load the training and testing data from the url provided. Then, we further split the original training data to train and validation set with 80% training set data. The validation set (20% data) will be used to select the best model later.
+
+
+```{r}
+train_url <- "http://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+test_url <- "http://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+
+df_train <- read.csv(url(train_url)) # The downloaded train data
+df_test <- read.csv(url(test_url)) # The downloaded test set
+
+# Split the train data to train set and validation set at 80/20
+set.seed(100)
+label <- createDataPartition(df_train$classe, p = 0.8, list = FALSE)
+train_set <- df_train[label, ]
+validation_set <- df_train[-label, ]
+
+dim(train_set)
+dim(validation_set)
+dim(df_test)
+
+```
+Remove the first five variables with identifications data from all dataset include train set, validation set and test data.
+
+```{r}
+train_set <- train_set[ , -(1:5)]
+validation_set <- validation_set[ , -(1:5)]
+df_test <- df_test[ , -(1:5)]
+```
+
+
+We check the NA values in the train set which will be used to train the model
+```{r}
+colSums(is.na(train_set))
+```
+
+We noticed a large number of NA and variables with near-zero-variance (NZV) in the train dataset. Therefore, we will remove the NZV variables and variables that are mostly NA (with the threshold of 90%):
+ 
+```{r}
+nzv <- nearZeroVar(train_set)
+train_set <- train_set[ , -nzv]
+
+# based on the nzv from train set, we will remove the same variables from validation set and original testing set
+validation_set <- validation_set[ , -nzv]
+df_test <- df_test[ , -nzv]
+
+# Remove the NA column at 90% threshold
+na_var <- sapply(train_set, function(x) mean(is.na(x))) > 0.9
+train_set <- train_set[ , na_var == FALSE]
+
+# Based on na_var above, we also remove the same variables from the validation set and df_test(the original testing set)
+validation_set <- validation_set[ , na_var == FALSE]
+df_test <- df_test[ , na_var == FALSE]
+
+dim(train_set)
+dim(validation_set)
+dim(df_test)
+```
+
+
+## Data Exploration
+ 
+Plot the correlation of variables. The darker squares correspond to highly correlated variables.
+
+```{r}
+corrMatrix <- cor(train_set[,-54])
+corrplot(corrMatrix, method = "color", type = "lower", tl.cex = 0.7, tl.col = rgb(0,0,0))
+
+```
+
+
+## Train Predictive models
+
+### Random Forest Classifier
+We train the first model using Random forest Classifier with repeadted cross validation repeatedcv. We use the metric 'accuracy' to compare the model. To speed up the model training, we will use parallel processing using multiple cores.
+
+```{r}
+
+library(doParallel)
+cl <- makePSOCKcluster(7)
+registerDoParallel(cl)
+
+
+control <- trainControl(method = "repeatedcv", number = 5, repeats = 2)
+#Number randomely variable selected is mtry
+mtry <- sqrt(ncol(train_set))
+
+set.seed(100)
+tunegrid <- expand.grid(.mtry=mtry)
+rf_model <- train(classe~., 
+                      data=train_set, 
+                      method='rf', 
+                      metric='Accuracy', 
+                      tuneGrid=tunegrid, 
+                      trControl=control)
+print(rf_model)
+```
+### Gradient Boosting Machine (GBM) Model
+
+We will train a Gradient Boosting Machine (GBM) Model to compare the resutl with the random forest model.
+
+
+```{r}
+set.seed(100)
+gbm_model <- train(classe~., data = train_set, 
+                 method = "gbm", 
+                 trControl = control,
+                 ## This last option is actually one
+                 ## for gbm() that passes through
+                 verbose = FALSE)
+print(gbm_model)
+stopCluster(cl)
+```
+
+## Compare the models using validation set
+
+We compute the predictions of Random Forest(RF) model on validation set and then compute the confusion matrix.The accuracy of the RF model is  99.85%.
+
+```{r}
+predict_rf <- predict(rf_model, validation_set)
+confMatrix_rf <- confusionMatrix(predict_rf, factor(validation_set$classe))
+
+confMatrix_rf
+```
+We compute the predictions of the GBM model on validation set and then compute the confusion matrix.The accuracy of GBM Model is slightly lower than the RF model.
+
+```{r}
+predict_gbm <- predict(gbm_model, validation_set)
+confMatrix_gbm <- confusionMatrix(predict_gbm, factor(validation_set$classe))
+
+confMatrix_gbm
+```
+## Predicting the final original Test Set Output
+
+Since Random Forest (RF) model has the higher accuracy we will use the Random Forest (RF) model to predict the the classe of the test set.
+
+```{r}
+predict_final <- predict(rf_model, df_test)
+predict_final
+```
+
