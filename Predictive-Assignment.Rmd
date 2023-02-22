@@ -3,10 +3,10 @@ title: "PredictionAssignment"
 author: "TanST"
 date: "2023-02-21"
 output:
-  html_document: default
-  pdf_document: default
   md_document:
     variant: markdown_github
+  pdf_document: default
+  html_document: default
   word_document: default
 ---
 
@@ -15,6 +15,10 @@ knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 ```
 
 # Practical Machine Learning - Prediction Assignment
+
+Author: Tan Su Tung
+
+Date: 22 Feb 2022
 
 ## Overview
 This is the report of Peer Assessment project from Coursera’s course Practical Machine Learning. This markdown document was built in RStudio, using its knitr functions and published in md (markdown) format. 
@@ -41,7 +45,7 @@ library(corrplot)
 ```
 
 
-We load the training and testing data from the url provided. Then, we further split the original training data to train and validation set with 80% training set data. The validation set (20% data) will be used to select the best model later.
+We load the training and testing data from the url provided. Then, we further split the original training data to train and validation set with 80% training set data. The validation set (20% data) will be used to select the best model later. The purpose of this validation set is to reduce the out of sample error (The error rate you get on a new data set).
 
 
 ```{r}
@@ -114,7 +118,8 @@ corrplot(corrMatrix, method = "color", type = "lower", tl.cex = 0.7, tl.col = rg
 ## Train Predictive models
 
 ### Random Forest Classifier
-We train the first model using Random forest Classifier with repeadted cross validation repeatedcv. We use the metric 'accuracy' to compare the model. To speed up the model training, we will use parallel processing using multiple cores.
+We train the first model using Random forest Classifier with repeadted cross validation repeatedcv. We use the metric 'accuracy' to compare the model. To speed up the model training, we will use parallel processing using multiple cores. Cross validation can reduce the out of sample error.
+
 
 ```{r}
 
@@ -154,7 +159,9 @@ print(gbm_model)
 stopCluster(cl)
 ```
 
-## Compare the models using validation set
+## Reduce out of sample error - Compare the models using validation set
+
+On top of the cross validation in Random Forest. We compare the accuracy of the RF models and GBM models to reduce the out of sample error.The error is expected to be less than 2%.
 
 We compute the predictions of Random Forest(RF) model on validation set and then compute the confusion matrix.The accuracy of the RF model is  99.85%.
 
