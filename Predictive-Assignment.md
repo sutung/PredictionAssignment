@@ -4,6 +4,7 @@ knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 
 # Practical Machine Learning - Prediction Assignment
 Author: Tan Su Tung
+
 Date: 22 Feb 2022
 
 ## Overview
