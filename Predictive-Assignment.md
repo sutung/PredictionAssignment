@@ -76,7 +76,7 @@ dim(df_test)
 
     ## [1]  20 160
 
-Remove the first five variables with identifications from all dataset
+Remove the first five variables with identifications data from all dataset
 include train set, validation set and test data.
 
 ``` r
